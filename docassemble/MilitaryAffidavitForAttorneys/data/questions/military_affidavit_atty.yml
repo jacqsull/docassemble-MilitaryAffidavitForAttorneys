@@ -1,0 +1,196 @@
+metadata:
+  title: Military Affidavit Interview (Massachusetts Court System)
+  short title: Military Affidavit
+  comment: One of several documents necessary when filing a Complaint for Divorce.
+---
+modules:
+  - docassemble.MACourts.macourts
+  - docassemble.base.util
+# - docassemble.gbls
+#---
+#include:
+#  - docassemble.gbls:basic-questions-gbls.yml
+---
+objects:
+  - macourts: MACourtList.using(courts=['probate_and_family_courts'])
+  - client: Individual
+  - plaintiff: Individual
+  - defendant: Individual
+  - opposing_party: Individual
+---
+mandatory: True
+code: |
+  client.name.first
+  selected_court
+  docket_number 
+  client.name.first
+  opposing_party.name.first
+  if client_role == 'Plaintiff':
+    plaintiff = client
+    defendant = opposing_party
+  else:
+    defendant = client
+    plaintiff = opposing_party
+  current_mil_svc_true = False
+  current_mil_svc_false = False
+  current_mil_svc_unknown = False
+  current_mil_name = ''
+  not_current_mil_name = ''
+  unknown_current_mil_name = ''
+  if client_current_mil_svc:
+	  mil_aff_facts = client.name.full() + ' is currently in military service.'
+	  current_mil_name = client.name.full() 
+    current_mil_svc_true = True
+  else:
+	  mil_aff_facts = client.name.full() + ' is not currently in military service.'
+	  not_current_mil_name = client.name.full()  	
+    current_mil_svc_false = True
+  if op_current_mil_svc:
+    mil_aff_facts += opposing_party.name.full() + ' is currently in military service.'
+    current_mil_name += opposing_party.name.full()
+    current_mil_svc_true = True
+  elif op_current_mil_svc == False:
+	  mil_aff_facts += opposing_party.name.full() + ' is not currently in military service.'
+	  not_current_mil_name += opposing_party.name.full()
+    current_mil_svc_false = True
+  else:
+	  mil_aff_facts += ' I do not know if ' + opposing_party.name.full() + ' is currently in military service.'
+	  unknown_current_mil_name = opposing_party
+    understand_bond 
+    current_mil_svc_unknown = True
+  mil_aff
+  atty_name
+  target_variable
+  signature_date
+  bbo_number
+  some_event
+---
+field: testing_court
+question: |
+  The court
+subquestion: |  
+  ${selected_court.address}
+  
+  ${selected_court.address.county}
+  
+  ${selected_court.description}
+---
+question: |
+  What court is the case in?
+fields:
+  - Choose a court: selected_court
+    required: False  
+    datatype: object
+    choices: |
+      macourts 
+---
+question: |
+  ${selected_court} ${selected_court.address.on_one_line()}
+---
+mandatory: True
+question: |
+  What is the docket number?
+fields:
+  - Docket number: docket_number
+    required: False
+    datatype: text
+---
+question: |
+  What is your client's name? 
+fields:
+  - First name: client.name.first
+  - Last name: client.name.last
+---
+question: |
+  What is the opposing party's name? 
+fields:
+  - First name: opposing_party.name.first
+  - Last name: opposing_party.name.last
+---
+question: |
+  Is your client the plaintiff or the defendant? 
+field: client_role
+choices: 
+  - Plaintiff
+  - Defendant
+---
+question: |
+  Is your client currently in the military?
+yesno: client_current_mil_svc
+---
+question: |
+  Is ${ opposing_party.name.first } currently in the military service?
+yesnomaybe: op_current_mil_svc  
+---
+question: |
+  Because your client doesn't know if ${ opposing_party.name.first } is currently in the military, please explain to the client that the court, 
+  before entering judgment, may require that a bond be filed. 
+yesno: understand_bond
+---
+question: |
+The following facts support this affidavit (required):
+fields:
+  - no label: mil_aff
+	  default: ${mil_aff_facts}
+	  datatype: area
+---
+question: |
+  What is your name?
+fields:
+  - Attorney name: atty_name
+    datatype: text
+---
+question: |
+  Sign your name
+subquestion: |
+  By signing your name, you agree to
+  our terms and conditions.
+signature: target_variable
+under: |
+  ${ atty_name }
+---
+question: |
+  What is the date of signing?
+fields:
+  - Dated: signature_date
+    datatype: date
+---
+question: |
+  What is your BBO number?
+fields:
+  - BBO number: bbo_number
+    datatype: text
+---
+question: Result of question
+subquestion: |
+  You told me that: 
+  client_current_mil_svc is: "${ client_current_mil_svc }"
+  op_current_mil_svc is: "${ op_current_mil_svc }"  
+mandatory: True
+field: results_screen
+---
+mandatory: True
+question: Here is your document.
+event: some_event
+attachment:
+  - name: military_affidavit_atty
+    filename: military_affidavit_atty
+    pdf template file: military_affidavit_atty.pdf
+    fields:
+      - "selected_court.address.county": ${selected_court.address.county}
+      - "plaintiff": ${plaintiff}
+      - "defendant": ${defendant}
+      - "docket_number": ${docket_number}
+      - "client": ${client} 
+      - "current_mil_svc_true": ${current_mil_svc_true}
+      - "current_mil_name": ${current_mil_name}
+      - "current_mil_svc_false": ${current_mil_svc_false}
+      - "not_current_mil_name": ${not_current_mil_name}
+      - "current_mil_svc_unknown": ${current_mil_svc_unknown}
+      - "unknown_current_mil_name": ${unknown_current_mil_name}
+      - "mil_aff_facts": ${mil_aff_facts}
+      - "signature": ${target_variable}
+      - "signature_date": ${signature_date}
+      - "atty_name": ${atty_name}
+      - "bbo_number": ${bbo_number}
+---      
